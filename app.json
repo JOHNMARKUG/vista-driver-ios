@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "VISTA Driver",
+    "slug": "vista-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vistadriver",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B2E6B"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "ug.vista.driver",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "requireFullScreen": true,
+      "backgroundColor": "#1B2E6B",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Required for uploading proof-of-delivery photos",
+        "NSMicrophoneUsageDescription": "Required for voice messages to passengers",
+        "NSPhotoLibraryUsageDescription": "Required for uploading driver documents",
+        "NSLocationWhenInUseUsageDescription": "Required to share your location with passengers during trips",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Required to track your location during active trips",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "ug.vista.driver",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1B2E6B"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      "./plugins/withFmtFix",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#1B2E6B"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    },
+    "owner": "visitors-integrated-scheduled-transport-association-limited"
+  }
+}
