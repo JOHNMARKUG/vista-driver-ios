@@ -18,13 +18,14 @@
     ],
     "ios": {
       "bundleIdentifier": "ug.vista.driver",
-      "buildNumber": "2",
+      "buildNumber": "4",
       "supportsTablet": false,
       "requireFullScreen": true,
       "backgroundColor": "#1B2E6B",
       "infoPlist": {
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
         },
         "NSCameraUsageDescription": "Required for uploading proof-of-delivery photos",
         "NSMicrophoneUsageDescription": "Required for voice messages to passengers",

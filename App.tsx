@@ -6,7 +6,7 @@ import {
   BackHandler,
   Platform,
 } from 'react-native';
-import { WebView, type WebViewNavigation } from 'react-native-webview';
+import { WebView, type WebViewNavigation, type WebViewMessageEvent } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,6 +15,32 @@ SplashScreen.preventAutoHideAsync();
 
 const DRIVER_URL = 'https://vista-driver.vercel.app';
 const NAVY = '#1B2E6B';
+
+const SAFARI_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+
+const ERROR_INJECTION = `
+  (function() {
+    window.onerror = function(msg, src, line, col, err) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'JS_ERROR',
+        msg: msg,
+        src: src,
+        line: line,
+        col: col,
+        err: err ? err.toString() : null
+      }));
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'PROMISE_ERROR',
+        reason: e.reason ? e.reason.toString() : String(e)
+      }));
+    });
+    true;
+  })();
+`;
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
@@ -33,11 +59,18 @@ export default function App() {
   }, [hideSplash]);
 
   const onError = useCallback(() => {
-    // Hide splash even on error — silent white screen is worse than a browser error page
     hideSplash();
   }, [hideSplash]);
 
-  // Android hardware back button navigates the WebView back
+  const onMessage = useCallback((event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      console.warn('[VISTA Driver WebView]', JSON.stringify(data));
+    } catch {
+      console.log('[VISTA Driver WebView message]', event.nativeEvent.data);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -65,15 +98,22 @@ export default function App() {
           onLoad={onLoad}
           onError={onError}
           onHttpError={onError}
+          onMessage={onMessage}
           onNavigationStateChange={onNavigationStateChange}
           originWhitelist={['*']}
+          userAgent={SAFARI_UA}
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
+          allowsFullscreenVideo
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled
+          javaScriptCanOpenWindowsAutomatically
           domStorageEnabled
           geolocationEnabled
           mixedContentMode="always"
+          allowUniversalAccessFromFileURLs
+          allowFileAccessFromFileURLs
+          setSupportMultipleWindows={false}
           startInLoadingState
           renderLoading={() => (
             <View style={styles.loader}>
@@ -81,7 +121,7 @@ export default function App() {
             </View>
           )}
           onShouldStartLoadWithRequest={() => true}
-          applicationNameForUserAgent="VISTADriverApp/1.0"
+          injectedJavaScript={ERROR_INJECTION}
         />
       </SafeAreaView>
     </SafeAreaProvider>
