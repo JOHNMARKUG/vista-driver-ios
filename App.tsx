@@ -19,10 +19,23 @@ const NAVY = '#1B2E6B';
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
+  const splashHidden = useRef(false);
+
+  const hideSplash = useCallback(() => {
+    if (!splashHidden.current) {
+      splashHidden.current = true;
+      SplashScreen.hideAsync();
+    }
+  }, []);
 
   const onLoad = useCallback(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    hideSplash();
+  }, [hideSplash]);
+
+  const onError = useCallback(() => {
+    // Hide splash even on error — silent white screen is worse than a browser error page
+    hideSplash();
+  }, [hideSplash]);
 
   // Android hardware back button navigates the WebView back
   React.useEffect(() => {
@@ -50,13 +63,17 @@ export default function App() {
           source={{ uri: DRIVER_URL }}
           style={styles.webview}
           onLoad={onLoad}
+          onError={onError}
+          onHttpError={onError}
           onNavigationStateChange={onNavigationStateChange}
+          originWhitelist={['*']}
           allowsBackForwardNavigationGestures
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled
           domStorageEnabled
           geolocationEnabled
+          mixedContentMode="always"
           startInLoadingState
           renderLoading={() => (
             <View style={styles.loader}>
