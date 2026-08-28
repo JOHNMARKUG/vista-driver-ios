@@ -19,6 +19,22 @@ const NAVY = '#1B2E6B';
 const SAFARI_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
+// Runs BEFORE page JS: stubs out Service Worker so WKWebView doesn't
+// choke on SW registration (WKWebView doesn't support SW in RN WebView).
+// The chunk-load guard in the page calls location.reload() on SW errors,
+// causing an infinite reload loop → white screen.
+const SW_STUB = `
+  (function() {
+    try {
+      Object.defineProperty(navigator, 'serviceWorker', {
+        get: function() { return undefined; },
+        configurable: true
+      });
+    } catch(e) {}
+  })();
+  true;
+`;
+
 const ERROR_INJECTION = `
   (function() {
     window.onerror = function(msg, src, line, col, err) {
@@ -36,6 +52,12 @@ const ERROR_INJECTION = `
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'PROMISE_ERROR',
         reason: e.reason ? e.reason.toString() : String(e)
+      }));
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'loaded',
+        url: window.location.href
       }));
     });
     true;
@@ -121,6 +143,7 @@ export default function App() {
             </View>
           )}
           onShouldStartLoadWithRequest={() => true}
+          injectedJavaScriptBeforeContentLoaded={SW_STUB}
           injectedJavaScript={ERROR_INJECTION}
         />
       </SafeAreaView>
