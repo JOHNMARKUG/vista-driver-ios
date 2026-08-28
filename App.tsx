@@ -19,16 +19,33 @@ const NAVY = '#1B2E6B';
 const SAFARI_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-// Runs BEFORE page JS: stubs out Service Worker so WKWebView doesn't
-// choke on SW registration (WKWebView doesn't support SW in RN WebView).
-// The chunk-load guard in the page calls location.reload() on SW errors,
-// causing an infinite reload loop → white screen.
+// Runs BEFORE page JS: installs a mock serviceWorker so that:
+// 1. 'serviceWorker' in navigator = true (Firebase messaging checks this)
+// 2. navigator.serviceWorker.addEventListener() is a no-op (no crash)
+// 3. navigator.serviceWorker.register() returns a rejected Promise (no SW installed)
+//
+// The previous stub returned undefined, causing Firebase's getMessaging() to call
+// undefined.addEventListener() → TypeError at module level → React never mounted.
 const SW_STUB = `
   (function() {
     try {
+      var noop = function() {};
+      var fakeSW = {
+        register: function() {
+          return Promise.reject(new Error('ServiceWorker not supported in WebView'));
+        },
+        getRegistrations: function() { return Promise.resolve([]); },
+        getRegistration: function() { return Promise.resolve(undefined); },
+        addEventListener: noop,
+        removeEventListener: noop,
+        dispatchEvent: function() { return false; },
+        controller: null,
+        ready: new Promise(function() {}),
+      };
       Object.defineProperty(navigator, 'serviceWorker', {
-        get: function() { return undefined; },
-        configurable: true
+        get: function() { return fakeSW; },
+        configurable: true,
+        enumerable: true
       });
     } catch(e) {}
   })();

@@ -18,7 +18,7 @@
     ],
     "ios": {
       "bundleIdentifier": "ug.vista.driver",
-      "buildNumber": "5",
+      "buildNumber": "7",
       "supportsTablet": false,
       "requireFullScreen": true,
       "backgroundColor": "#1B2E6B",
