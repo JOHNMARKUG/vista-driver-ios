@@ -7,6 +7,8 @@ import { decode } from 'base64-arraybuffer';
 
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import VISTAButton from '../../components/VISTAButton';
+import VISTAInput from '../../components/VISTAInput';
 import { colors, radius, shadows, spacing } from '../../lib/theme';
 
 function getDriverLevel(trips: number) {
@@ -17,10 +19,14 @@ function getDriverLevel(trips: number) {
 }
 
 export default function ProfileScreen() {
-  const { driver, signOut, refreshDriver } = useAuth();
+  const { driver, signOut, refreshDriver, updatePassword } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [showLevel, setShowLevel] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const totalTrips = driver?.total_trips ?? 0;
   const level = getDriverLevel(totalTrips);
@@ -84,6 +90,28 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      Alert.alert('Too short', 'Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert("Passwords don't match", 'Please re-enter your new password.');
+      return;
+    }
+    setChangingPassword(true);
+    const { error } = await updatePassword(newPassword);
+    setChangingPassword(false);
+    if (error) {
+      Alert.alert('Could not change password', error);
+      return;
+    }
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setShowChangePassword(false);
+    Alert.alert('Password updated', 'You can now sign in with your new password, or keep using an email code — either works.');
   };
 
   const contactSupport = () => {
@@ -190,6 +218,11 @@ export default function ProfileScreen() {
             ))}
           </View>
 
+          <Pressable onPress={() => setShowChangePassword(true)} style={[{ minHeight: 52, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 10 }, shadows.card]}>
+            <Ionicons name="key-outline" size={18} color={colors.navy} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: colors.navy }}>Change Password</Text>
+          </Pressable>
+
           <Pressable onPress={contactSupport} style={[{ minHeight: 52, backgroundColor: colors.card, borderWidth: 1.5, borderColor: 'rgba(26,107,60,0.25)', borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 10 }, shadows.card]}>
             <Ionicons name="headset" size={18} color="#1A6B3C" />
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#1A6B3C' }}>Contact VISTA Support</Text>
@@ -226,6 +259,25 @@ export default function ProfileScreen() {
 
             <Pressable onPress={() => setShowLevel(false)} style={{ backgroundColor: colors.navy, borderRadius: 14, padding: 14, alignItems: 'center' }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {showChangePassword && (
+        <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(27,46,107,0.55)', alignItems: 'center', justifyContent: 'flex-end' } as any}>
+          <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, width: '100%' }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.navy, marginBottom: 6 }}>Change Password</Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 18, lineHeight: 18 }}>
+              Set a password if you'd like the option to sign in without an email code. This never replaces code sign-in — it's always available too.
+            </Text>
+            <View style={{ gap: spacing.sm, marginBottom: spacing.md }}>
+              <VISTAInput placeholder="New password (min 8 characters)" value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" />
+              <VISTAInput placeholder="Confirm new password" value={confirmNewPassword} onChangeText={setConfirmNewPassword} secureTextEntry autoCapitalize="none" />
+            </View>
+            <VISTAButton title={changingPassword ? 'Saving…' : 'Save New Password'} variant="accent" fullWidth loading={changingPassword} disabled={changingPassword} onPress={handleChangePassword} />
+            <Pressable onPress={() => { setShowChangePassword(false); setNewPassword(''); setConfirmNewPassword(''); }} style={{ marginTop: 10, alignItems: 'center', paddingVertical: 8 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>Cancel</Text>
             </Pressable>
           </View>
         </View>

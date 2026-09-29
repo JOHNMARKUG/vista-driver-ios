@@ -138,6 +138,11 @@ export default function LoginScreen({ navigation }: Props) {
               {passwordMode ? 'Use an email code instead' : 'Sign in with a password instead'}
             </Text>
           </Pressable>
+          {passwordMode && (
+            <Text style={{ color: colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
+              Forgot it? Use an email code above, then change your password from Profile.
+            </Text>
+          )}
 
           <View style={{ flex: 1 }} />
 

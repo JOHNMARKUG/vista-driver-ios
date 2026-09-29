@@ -53,6 +53,8 @@ type AuthContextValue = {
   verifyOtp: (email: string, token: string) => Promise<{ error: string | null; user: User | null }>;
   /** For accounts that have a password (e.g. the App Review demo driver). */
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Set or change the signed-in driver's password — see comment at the implementation for why this replaces a reset-email flow. */
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshDriver: () => Promise<void>;
 };
@@ -154,6 +156,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   }, [fetchDriver]);
 
+  /**
+   * Setting/changing a password for a driver who's already signed in (via
+   * email code, which never requires one). This is the real answer to
+   * "forgot password" — there's no separate reset-link flow, because the
+   * web app's own resetPasswordForEmail call has no matching destination
+   * page in that app either (the same broken pattern behind the earlier
+   * "mysterious reset email" investigation this session). A driver can
+   * always fall back to signing in with a code and set a new password here
+   * instead of depending on a reset email going somewhere real.
+   */
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error?.message ?? null };
+  }, []);
+
   const signOut = useCallback(async () => {
     // Go offline before signing out so the live-tracking marker doesn't get
     // stuck showing this driver as online after the app closes the session.
@@ -178,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sendOtp,
         verifyOtp,
         signInWithPassword,
+        updatePassword,
         signOut,
         refreshDriver,
       }}
