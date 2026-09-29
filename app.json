@@ -5,39 +5,29 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "vistadriver",
     "userInterfaceStyle": "light",
+    "scheme": "vistadriver",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1B2E6B"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "bundleIdentifier": "ug.vista.driver",
-      "buildNumber": "7",
+      "buildNumber": "9",
       "supportsTablet": false,
-      "requireFullScreen": true,
       "backgroundColor": "#1B2E6B",
       "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSAllowsLocalNetworking": true
-        },
-        "NSCameraUsageDescription": "Required for uploading proof-of-delivery photos",
-        "NSMicrophoneUsageDescription": "Required for voice messages to passengers",
-        "NSPhotoLibraryUsageDescription": "Required for uploading driver documents",
-        "NSLocationWhenInUseUsageDescription": "Required to share your location with passengers during trips",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Required to track your location during active trips",
+        "NSLocationWhenInUseUsageDescription": "VISTA Driver needs your location to show your position to dispatch and to passengers during a trip.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "VISTA Driver needs your location while you're online so passengers can see your live position during trips.",
+        "NSCameraUsageDescription": "VISTA Driver needs camera access to take your profile and document photos.",
+        "NSPhotoLibraryUsageDescription": "VISTA Driver needs photo access to upload your profile and verification documents.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "ug.vista.driver",
-      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1B2E6B"
@@ -45,10 +35,8 @@
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "plugins": [
@@ -61,7 +49,35 @@
           "resizeMode": "contain",
           "backgroundColor": "#1B2E6B"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "VISTA Driver needs your location to show your position to dispatch and to passengers during a trip."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "VISTA Driver needs camera access to take your profile and document photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VISTA Driver needs photo access to upload your profile and verification documents."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1B2E6B"
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

@@ -1,6 +1,7 @@
 {
   "cli": {
     "version": ">= 10.0.0",
+    "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false
   },
   "build": {
@@ -17,19 +18,14 @@
         "simulator": false
       }
     },
-    "production": {
-      "autoIncrement": true,
-      "ios": {
-        "autoIncrement": "buildNumber",
-        "image": "macos-sequoia-15.6-xcode-26.0"
-      }
-    }
+    "production": {}
   },
   "submit": {
     "production": {
       "ios": {
         "appleId": "vistalimitedug@gmail.com",
-        "appleTeamId": "6HFWNZHT8G"
+        "appleTeamId": "6HFWNZHT8G",
+        "ascAppId": "6805625177"
       }
     }
   }

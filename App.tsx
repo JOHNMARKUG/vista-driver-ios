@@ -1,187 +1,20 @@
-import React, { useRef, useState, useCallback } from 'react';
-import {
-  StyleSheet,
-  View,
-  ActivityIndicator,
-  BackHandler,
-  Platform,
-} from 'react-native';
-import { WebView, type WebViewNavigation, type WebViewMessageEvent } from 'react-native-webview';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-SplashScreen.preventAutoHideAsync();
-
-const DRIVER_URL = 'https://vista-driver.vercel.app';
-const NAVY = '#1B2E6B';
-
-const SAFARI_UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
-
-// Runs BEFORE page JS: installs a mock serviceWorker so that:
-// 1. 'serviceWorker' in navigator = true (Firebase messaging checks this)
-// 2. navigator.serviceWorker.addEventListener() is a no-op (no crash)
-// 3. navigator.serviceWorker.register() returns a rejected Promise (no SW installed)
-//
-// The previous stub returned undefined, causing Firebase's getMessaging() to call
-// undefined.addEventListener() → TypeError at module level → React never mounted.
-const SW_STUB = `
-  (function() {
-    try {
-      var noop = function() {};
-      var fakeSW = {
-        register: function() {
-          return Promise.reject(new Error('ServiceWorker not supported in WebView'));
-        },
-        getRegistrations: function() { return Promise.resolve([]); },
-        getRegistration: function() { return Promise.resolve(undefined); },
-        addEventListener: noop,
-        removeEventListener: noop,
-        dispatchEvent: function() { return false; },
-        controller: null,
-        ready: new Promise(function() {}),
-      };
-      Object.defineProperty(navigator, 'serviceWorker', {
-        get: function() { return fakeSW; },
-        configurable: true,
-        enumerable: true
-      });
-    } catch(e) {}
-  })();
-  true;
-`;
-
-const ERROR_INJECTION = `
-  (function() {
-    window.onerror = function(msg, src, line, col, err) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'JS_ERROR',
-        msg: msg,
-        src: src,
-        line: line,
-        col: col,
-        err: err ? err.toString() : null
-      }));
-      return false;
-    };
-    window.addEventListener('unhandledrejection', function(e) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'PROMISE_ERROR',
-        reason: e.reason ? e.reason.toString() : String(e)
-      }));
-    });
-    document.addEventListener('DOMContentLoaded', function() {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'loaded',
-        url: window.location.href
-      }));
-    });
-    true;
-  })();
-`;
+import { AuthProvider } from './src/context/AuthContext';
+import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
-  const webViewRef = useRef<WebView>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const splashHidden = useRef(false);
-
-  const hideSplash = useCallback(() => {
-    if (!splashHidden.current) {
-      splashHidden.current = true;
-      SplashScreen.hideAsync();
-    }
-  }, []);
-
-  const onLoad = useCallback(() => {
-    hideSplash();
-  }, [hideSplash]);
-
-  const onError = useCallback(() => {
-    hideSplash();
-  }, [hideSplash]);
-
-  const onMessage = useCallback((event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      console.warn('[VISTA Driver WebView]', JSON.stringify(data));
-    } catch {
-      console.log('[VISTA Driver WebView message]', event.nativeEvent.data);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (canGoBack && webViewRef.current) {
-        webViewRef.current.goBack();
-        return true;
-      }
-      return false;
-    });
-    return () => handler.remove();
-  }, [canGoBack]);
-
-  const onNavigationStateChange = (state: WebViewNavigation) => {
-    setCanGoBack(state.canGoBack);
-  };
-
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor={NAVY} />
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: DRIVER_URL }}
-          style={styles.webview}
-          onLoad={onLoad}
-          onError={onError}
-          onHttpError={onError}
-          onMessage={onMessage}
-          onNavigationStateChange={onNavigationStateChange}
-          originWhitelist={['*']}
-          userAgent={SAFARI_UA}
-          allowsBackForwardNavigationGestures
-          allowsInlineMediaPlayback
-          allowsFullscreenVideo
-          mediaPlaybackRequiresUserAction={false}
-          javaScriptEnabled
-          javaScriptCanOpenWindowsAutomatically
-          domStorageEnabled
-          geolocationEnabled
-          mixedContentMode="always"
-          allowUniversalAccessFromFileURLs
-          allowFileAccessFromFileURLs
-          setSupportMultipleWindows={false}
-          startInLoadingState
-          renderLoading={() => (
-            <View style={styles.loader}>
-              <ActivityIndicator size="large" color="#C8922A" />
-            </View>
-          )}
-          onShouldStartLoadWithRequest={() => true}
-          injectedJavaScriptBeforeContentLoaded={SW_STUB}
-          injectedJavaScript={ERROR_INJECTION}
-        />
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <StatusBar style="dark" />
+          <AppNavigator />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: NAVY,
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: NAVY,
-  },
-  loader: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: NAVY,
-  },
-});
