@@ -1,6 +1,7 @@
 export type AuthStackParamList = {
   Login: undefined;
   OTP: { email: string };
+  Register: undefined;
 };
 
 export type DashboardStackParamList = {

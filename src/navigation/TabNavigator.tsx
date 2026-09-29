@@ -29,11 +29,10 @@ export const VISIBLE_TAB_BAR_STYLE = { position: 'absolute' as const, borderTopW
 function DashboardStackNavigator() {
   return (
     <DashboardStack.Navigator screenOptions={{ headerTintColor: colors.navy }}>
-      <DashboardStack.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-        options={{ title: 'VISTA Driver', headerLargeTitle: true, headerTitleStyle: { color: '#000000' } }}
-      />
+      {/* headerShown: false — DashboardScreen renders its own full navy
+          header (greeting, level badge, online toggle, stats). A native
+          large-title header on top of that duplicated and overlapped it. */}
+      <DashboardStack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
       <DashboardStack.Screen name="JobDetail" component={JobDetailScreen} options={{ title: 'Trip', ...pushedHeaderOptions }} />
     </DashboardStack.Navigator>
   );
@@ -42,11 +41,7 @@ function DashboardStackNavigator() {
 function EarningsStackNavigator() {
   return (
     <EarningsStack.Navigator screenOptions={{ headerTintColor: colors.navy }}>
-      <EarningsStack.Screen
-        name="Earnings"
-        component={EarningsScreen}
-        options={{ title: 'Earnings', headerLargeTitle: true, headerTitleStyle: { color: '#000000' } }}
-      />
+      <EarningsStack.Screen name="Earnings" component={EarningsScreen} options={{ headerShown: false }} />
     </EarningsStack.Navigator>
   );
 }
@@ -54,11 +49,7 @@ function EarningsStackNavigator() {
 function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerTintColor: colors.navy }}>
-      <ProfileStack.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile', headerLargeTitle: true, headerTitleStyle: { color: '#000000' } }}
-      />
+      <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     </ProfileStack.Navigator>
   );
 }

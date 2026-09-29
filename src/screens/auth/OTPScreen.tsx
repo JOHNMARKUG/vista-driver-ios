@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -48,6 +49,24 @@ export default function OTPScreen({ route, navigation }: Props) {
     await sendOtp(email);
   };
 
+  // A single, explicit "Paste code" button rather than polling the
+  // clipboard in the background — iOS shows its own "Allow Paste" prompt on
+  // every programmatic clipboard read, so this only asks once, on a tap the
+  // user just made themselves (mirrors the copy-then-paste flow most people
+  // already know from Mail/Messages rather than needing SMS-only autofill,
+  // which email-delivered codes can't use).
+  const handlePaste = async () => {
+    const text = (await Clipboard.getStringAsync()).trim();
+    const digits = text.replace(/\D/g, '');
+    if (digits.length === 6) {
+      setCode(digits);
+      setError(null);
+      handleVerify(digits);
+    } else {
+      setError('No 6-digit code found on your clipboard. Copy it from the email first.');
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.navy }} edges={['top', 'bottom']}>
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
@@ -67,6 +86,12 @@ export default function OTPScreen({ route, navigation }: Props) {
         <Text style={{ color: colors.gold, fontSize: 15, fontWeight: '700', marginBottom: spacing.xl }}>{email}</Text>
 
         <OTPInput value={code} onChange={(v) => { setCode(v); setError(null); if (v.length === 6) handleVerify(v); }} />
+
+        <Pressable onPress={handlePaste} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: spacing.md, paddingVertical: 8 }}>
+          <Ionicons name="clipboard-outline" size={16} color={colors.gold} />
+          <Text style={{ color: colors.gold, fontSize: 13, fontWeight: '700' }}>Paste code from clipboard</Text>
+        </Pressable>
+
         {error ? (
           <Text style={{ color: '#FF6B60', fontSize: 13, textAlign: 'center', marginTop: spacing.sm }}>{error}</Text>
         ) : (

@@ -108,9 +108,10 @@ export default function ProfileScreen() {
   const approved = driver?.status === 'approved';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         <View style={{ backgroundColor: colors.navy, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl }}>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: spacing.md }}>Profile</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 16 }}>
             <Pressable onPress={handlePickPhoto} disabled={uploading} style={{ position: 'relative' }}>
               {driver?.profile_photo_url ? (

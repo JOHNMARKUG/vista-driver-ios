@@ -12,11 +12,9 @@ import VISTAButton from '../../components/VISTAButton';
 import VISTAInput from '../../components/VISTAInput';
 import { colors, spacing } from '../../lib/theme';
 
-// Driver accounts are provisioned by dispatch, not self-registered — there is
-// no "sign up" path here, matching the web driver app (DriverLoginScreen.jsx):
-// email OTP for drivers who already have an account, or password for the
-// App Review demo account (same 2.1(a)-compliant pattern already proven on
-// VISTA Transport).
+// Existing drivers sign in with an email code or (for the App Review demo
+// account) a password. New applicants use the separate Register flow below,
+// which is vetted by dispatch — signing in never self-activates an account.
 const schema = z.object({
   email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
 });
@@ -143,8 +141,11 @@ export default function LoginScreen({ navigation }: Props) {
 
           <View style={{ flex: 1 }} />
 
-          <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18, paddingVertical: spacing.lg }}>
-            Don't have a driver account yet? Contact VISTA dispatch to get set up.
+          <Pressable onPress={() => navigation.navigate('Register')} style={{ paddingVertical: spacing.md, alignItems: 'center' }}>
+            <Text style={{ color: colors.navy, fontSize: 14, fontWeight: '700' }}>Apply to become a VISTA driver</Text>
+          </Pressable>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18, paddingBottom: spacing.lg }}>
+            New drivers are reviewed and approved by our team before their account is activated.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

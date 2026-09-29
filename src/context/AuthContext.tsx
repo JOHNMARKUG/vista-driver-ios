@@ -39,7 +39,14 @@ export type Driver = {
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
-  driver: Driver | null;
+  /**
+   * `undefined` = haven't looked up this session's drivers row yet (still
+   * loading). `null` = looked it up and confirmed none exists — a real,
+   * signed-in Supabase user (this project's Auth is shared across all VISTA
+   * apps, so any VISTA Transport customer's email can sign in here) who
+   * just isn't a driver. A `Driver` = found and loaded.
+   */
+  driver: Driver | null | undefined;
   loading: boolean;
   /** Drivers are provisioned by dispatch, not self-registered by email — OTP only signs in an existing account. */
   sendOtp: (email: string) => Promise<{ error: string | null }>;
@@ -79,7 +86,7 @@ async function fetchDriverByEmail(email: string, authUserId: string): Promise<Dr
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [driver, setDriver] = useState<Driver | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const wasAuthenticated = useRef(false);
 
@@ -97,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(s);
       if (s?.user) {
         wasAuthenticated.current = true;
+        setDriver(undefined); // reset to "checking" for this session before the lookup resolves
         fetchDriver(s.user);
       }
       setLoading(false);
@@ -106,9 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(s);
       if (s?.user) {
         wasAuthenticated.current = true;
+        setDriver(undefined);
         fetchDriver(s.user);
       } else {
-        setDriver(null);
+        setDriver(undefined);
       }
     });
 
@@ -152,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.from('drivers').update({ is_online: false }).eq('id', driver.id);
     }
     await supabase.auth.signOut();
-    setDriver(null);
+    setDriver(undefined);
   }, [driver]);
 
   const refreshDriver = useCallback(async () => {

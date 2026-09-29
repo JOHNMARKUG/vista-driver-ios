@@ -125,9 +125,12 @@ export default function EarningsScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['top', 'bottom']}>
+      <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: colors.navy }}>Earnings</Text>
+      </View>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.md, paddingBottom: spacing.xxl }}
+        contentContainerStyle={{ padding: spacing.md, paddingTop: 0, paddingBottom: spacing.xxl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEarnings(); }} />}
       >
         {loading ? (
