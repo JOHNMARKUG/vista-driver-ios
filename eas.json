@@ -1,7 +1,6 @@
 {
   "cli": {
     "version": ">= 10.0.0",
-    "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false
   },
   "build": {
@@ -18,7 +17,9 @@
         "simulator": false
       }
     },
-    "production": {}
+    "production": {
+      "autoIncrement": "buildNumber"
+    }
   },
   "submit": {
     "production": {
