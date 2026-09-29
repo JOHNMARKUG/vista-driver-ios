@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "ug.vista.driver",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "supportsTablet": false,
       "backgroundColor": "#1B2E6B",
       "infoPlist": {
