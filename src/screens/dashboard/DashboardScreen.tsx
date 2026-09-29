@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { colors, radius, shadows, spacing } from '../../lib/theme';
 import VISTAButton from '../../components/VISTAButton';
+import ChatModal from '../../components/ChatModal';
 import type { Booking, PilgrimPackage, VistaRide } from '../../types/driver';
 
 const SOS_WHATSAPP = '256785585703';
@@ -62,6 +63,8 @@ export default function DashboardScreen() {
   const [actingId, setActingId] = useState<string | null>(null);
   const [sosVisible, setSosVisible] = useState(false);
   const [sosSending, setSosSending] = useState(false);
+  const [chatTarget, setChatTarget] = useState<{ id: string; type: 'booking' | 'vista_ride'; name: string | null } | null>(null);
+  const [jobUnread, setJobUnread] = useState<Record<string, number>>({});
 
   const watchSubRef = useRef<Location.LocationSubscription | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -174,6 +177,39 @@ export default function DashboardScreen() {
       watchSubRef.current = null;
     };
   }, [isOnline, driver?.id]);
+
+  // Unread chat badges — combined ids from active bookings + active rides,
+  // since both job types share the same ride_messages table.
+  const fetchJobUnread = useCallback(async () => {
+    const ids = [...assignedJobs.map((j) => j.id), ...vistaRides.map((r) => r.id)];
+    if (!ids.length) return;
+    const { data } = await supabase.from('ride_messages').select('booking_id').in('booking_id', ids).eq('sender_type', 'customer').is('read_at', null);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    data.forEach((m: any) => { counts[m.booking_id] = (counts[m.booking_id] ?? 0) + 1; });
+    setJobUnread(counts);
+  }, [assignedJobs, vistaRides]);
+
+  useEffect(() => {
+    fetchJobUnread();
+  }, [fetchJobUnread]);
+
+  useEffect(() => {
+    if (!driver?.id) return;
+    const channel = supabase
+      .channel(`driver-job-unread-${driver.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ride_messages' }, () => fetchJobUnread())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ride_messages' }, () => fetchJobUnread())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [driver?.id, fetchJobUnread]);
+
+  const openChat = (id: string, type: 'booking' | 'vista_ride', name: string | null) => {
+    setChatTarget({ id, type, name });
+    setJobUnread((prev) => ({ ...prev, [id]: 0 }));
+  };
 
   const toggleOnline = useCallback(async () => {
     if (!driver?.id) return;
@@ -407,7 +443,16 @@ export default function DashboardScreen() {
             <View style={{ marginBottom: spacing.lg }}>
               <SectionLabel color="#2563EB">Active VISTA Rides</SectionLabel>
               {vistaRides.map((ride) => (
-                <RideCard key={ride.id} ride={ride} busy={actingId === ride.id} onArrived={handleRideArrived} onStart={handleRideStart} onComplete={handleRideComplete} />
+                <RideCard
+                  key={ride.id}
+                  ride={ride}
+                  busy={actingId === ride.id}
+                  unread={jobUnread[ride.id] ?? 0}
+                  onArrived={handleRideArrived}
+                  onStart={handleRideStart}
+                  onComplete={handleRideComplete}
+                  onChat={() => openChat(ride.id, 'vista_ride', ride.customer_name ?? null)}
+                />
               ))}
             </View>
           )}
@@ -443,7 +488,18 @@ export default function DashboardScreen() {
               />
             ) : (
               assignedJobs.map((job) => (
-                <JobCard key={job.id} job={job} busy={actingId === job.id} onAccept={handleAcceptJob} onPass={handlePassJob} onStart={handleStartTrip} onArrived={handleArrived} onComplete={handleCompleteJob} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  busy={actingId === job.id}
+                  unread={jobUnread[job.id] ?? 0}
+                  onAccept={handleAcceptJob}
+                  onPass={handlePassJob}
+                  onStart={handleStartTrip}
+                  onArrived={handleArrived}
+                  onComplete={handleCompleteJob}
+                  onChat={() => openChat(job.id, 'booking', job.passenger_name)}
+                />
               ))
             )}
           </View>
@@ -488,6 +544,14 @@ export default function DashboardScreen() {
           </View>
         </View>
       )}
+
+      <ChatModal
+        visible={!!chatTarget}
+        bookingId={chatTarget?.id ?? null}
+        bookingType={chatTarget?.type ?? 'booking'}
+        otherPartyName={chatTarget?.name}
+        onClose={() => { setChatTarget(null); fetchJobUnread(); }}
+      />
     </SafeAreaView>
   );
 }
@@ -527,6 +591,34 @@ function NavRow({ pickup, dropoff }: { pickup?: string | null; dropoff?: string 
   );
 }
 
+function ChatButton({ unread, onPress }: { unread: number; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        marginTop: 8,
+        backgroundColor: unread > 0 ? colors.gold : '#F4F6F9',
+        borderWidth: 1.5,
+        borderColor: unread > 0 ? colors.gold : '#E8EDF5',
+        borderRadius: 12,
+        paddingVertical: 11,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+      }}
+    >
+      <Ionicons name="chatbubble-ellipses" size={16} color={unread > 0 ? '#FFFFFF' : '#6B7A99'} />
+      <Text style={{ fontSize: 13, fontWeight: '700', color: unread > 0 ? '#FFFFFF' : '#6B7A99' }}>Chat with Passenger</Text>
+      {unread > 0 && (
+        <View style={{ backgroundColor: '#DC2626', borderRadius: 20, paddingHorizontal: 7, paddingVertical: 1 }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', color: '#FFFFFF' }}>{unread} new</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 function ContactRow({ phone }: { phone?: string | null }) {
   if (!phone) return null;
   return (
@@ -549,10 +641,10 @@ const STATUS_BADGE: Record<string, { bg: string; color: string; label: string }>
 };
 
 function JobCard({
-  job, busy, onAccept, onPass, onStart, onArrived, onComplete,
+  job, busy, unread, onAccept, onPass, onStart, onArrived, onComplete, onChat,
 }: {
-  job: Booking; busy: boolean;
-  onAccept: (j: Booking) => void; onPass: (j: Booking) => void; onStart: (j: Booking) => void; onArrived: (j: Booking) => void; onComplete: (j: Booking) => void;
+  job: Booking; busy: boolean; unread: number;
+  onAccept: (j: Booking) => void; onPass: (j: Booking) => void; onStart: (j: Booking) => void; onArrived: (j: Booking) => void; onComplete: (j: Booking) => void; onChat: () => void;
 }) {
   const badge = STATUS_BADGE[job.status] ?? { bg: 'rgba(200,146,42,0.1)', color: colors.gold, label: job.status };
   const borderColor = job.status === 'driver_assigned' ? colors.gold : job.status === 'en_route' ? '#7C3AED' : job.status === 'driver_arrived' ? '#1A6B3C' : '#E8EDF5';
@@ -611,6 +703,7 @@ function JobCard({
           </View>
           <NavRow pickup={job.pickup_location} dropoff={job.dropoff_location} />
           <ContactRow phone={job.passenger_phone} />
+          <ChatButton unread={unread} onPress={onChat} />
         </>
       )}
       {job.status === 'en_route' && (
@@ -620,6 +713,7 @@ function JobCard({
           </View>
           <NavRow pickup={job.pickup_location} dropoff={job.dropoff_location} />
           <ContactRow phone={job.passenger_phone} />
+          <ChatButton unread={unread} onPress={onChat} />
         </>
       )}
       {job.status === 'driver_arrived' && (
@@ -629,6 +723,7 @@ function JobCard({
           </View>
           <NavRow dropoff={job.dropoff_location} />
           <ContactRow phone={job.passenger_phone} />
+          <ChatButton unread={unread} onPress={onChat} />
         </>
       )}
     </View>
@@ -636,10 +731,10 @@ function JobCard({
 }
 
 function RideCard({
-  ride, busy, onArrived, onStart, onComplete,
+  ride, busy, unread, onArrived, onStart, onComplete, onChat,
 }: {
-  ride: VistaRide; busy: boolean;
-  onArrived: (r: VistaRide) => void; onStart: (r: VistaRide) => void; onComplete: (r: VistaRide) => void;
+  ride: VistaRide; busy: boolean; unread: number;
+  onArrived: (r: VistaRide) => void; onStart: (r: VistaRide) => void; onComplete: (r: VistaRide) => void; onChat: () => void;
 }) {
   const driverEarnings = ride.total_ugx ? Math.round(ride.total_ugx * 0.9) : 0;
   return (
@@ -652,9 +747,12 @@ function RideCard({
         <Text style={{ fontSize: 12, color: '#6B7A99' }}>Fare: UGX {ride.total_ugx?.toLocaleString()}</Text>
         <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563EB' }}>You earn UGX {driverEarnings.toLocaleString()}</Text>
       </View>
-      {ride.status === 'driver_assigned' && <VISTAButton title={busy ? 'Updating…' : 'I Have Arrived'} variant="primary" fullWidth loading={busy} disabled={busy} onPress={() => onArrived(ride)} />}
-      {ride.status === 'arrived' && <VISTAButton title={busy ? 'Updating…' : 'Start Trip'} variant="accent" fullWidth loading={busy} disabled={busy} onPress={() => onStart(ride)} />}
-      {ride.status === 'in_progress' && <VISTAButton title={busy ? 'Updating…' : 'Complete Trip'} variant="primary" fullWidth loading={busy} disabled={busy} onPress={() => onComplete(ride)} />}
+      <ChatButton unread={unread} onPress={onChat} />
+      <View style={{ marginTop: 10 }}>
+        {ride.status === 'driver_assigned' && <VISTAButton title={busy ? 'Updating…' : 'I Have Arrived'} variant="primary" fullWidth loading={busy} disabled={busy} onPress={() => onArrived(ride)} />}
+        {ride.status === 'arrived' && <VISTAButton title={busy ? 'Updating…' : 'Start Trip'} variant="accent" fullWidth loading={busy} disabled={busy} onPress={() => onStart(ride)} />}
+        {ride.status === 'in_progress' && <VISTAButton title={busy ? 'Updating…' : 'Complete Trip'} variant="primary" fullWidth loading={busy} disabled={busy} onPress={() => onComplete(ride)} />}
+      </View>
     </View>
   );
 }
