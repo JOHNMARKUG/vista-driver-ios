@@ -6,6 +6,7 @@ type Props = TextInputProps & {
   label?: string;
   error?: string;
   leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 };
 
 /**
@@ -19,7 +20,7 @@ type Props = TextInputProps & {
  * apply; `color` always resolves to black (or red for an error).
  */
 const VISTAInput = forwardRef<TextInput, Props>(
-  ({ label, error, leftIcon, style, onFocus, onBlur, ...rest }, ref) => {
+  ({ label, error, leftIcon, rightIcon, style, onFocus, onBlur, ...rest }, ref) => {
     const [focused, setFocused] = useState(false);
     const active = focused || !!error;
 
@@ -62,6 +63,7 @@ const VISTAInput = forwardRef<TextInput, Props>(
               onBlur?.(e);
             }}
           />
+          {rightIcon}
         </View>
         {error ? (
           <Text style={{ fontSize: 12, color: colors.error }}>{error}</Text>
