@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import * as KeepAwake from 'expo-keep-awake';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -11,9 +12,11 @@ import { supabase } from '../../lib/supabase';
 import { colors, radius, shadows, spacing } from '../../lib/theme';
 import VISTAButton from '../../components/VISTAButton';
 import ChatModal from '../../components/ChatModal';
+import RideRequestModal from '../../components/RideRequestModal';
 import type { Booking, PilgrimPackage, VistaRide } from '../../types/driver';
 
 const SOS_WHATSAPP = '256785585703';
+const ONLINE_KEEP_AWAKE_TAG = 'driver-online';
 
 const SERVICE_LABELS: Record<string, string> = {
   airport_pickup: 'Airport Pickup',
@@ -26,6 +29,15 @@ const SERVICE_LABELS: Record<string, string> = {
   conference: 'Conference Transport',
 };
 const formatService = (type: string) => SERVICE_LABELS[type] ?? type;
+
+export const SERVICE_COLORS: Record<string, { bg: string; color: string }> = {
+  airport_pickup: { bg: 'rgba(27,46,107,0.08)', color: colors.navy },
+  airport_departure: { bg: 'rgba(27,46,107,0.08)', color: colors.navy },
+  vip: { bg: 'rgba(200,146,42,0.12)', color: colors.gold },
+  group_convoy: { bg: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
+  crusade: { bg: 'rgba(26,107,60,0.08)', color: '#1A6B3C' },
+  conference: { bg: 'rgba(26,107,60,0.08)', color: '#1A6B3C' },
+};
 
 function getDriverLevel(trips: number) {
   if (trips >= 500) return { label: 'Platinum', color: '#06B6D4', icon: '💎', next: null as string | null, nextAt: null as number | null };
@@ -65,14 +77,49 @@ export default function DashboardScreen() {
   const [sosSending, setSosSending] = useState(false);
   const [chatTarget, setChatTarget] = useState<{ id: string; type: 'booking' | 'vista_ride'; name: string | null } | null>(null);
   const [jobUnread, setJobUnread] = useState<Record<string, number>>({});
+  const [onlineDuration, setOnlineDuration] = useState('0m');
 
   const watchSubRef = useRef<Location.LocationSubscription | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const silentRefresh = useRef(false);
+  const onlineStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (driver?.is_online !== undefined) setIsOnline(!!driver.is_online);
   }, [driver?.is_online]);
+
+  // Online session timer, shown next to the toggle — purely a UI clock,
+  // resets whenever the driver goes offline.
+  useEffect(() => {
+    if (!isOnline) {
+      onlineStartRef.current = null;
+      setOnlineDuration('0m');
+      return;
+    }
+    if (!onlineStartRef.current) onlineStartRef.current = Date.now();
+    const update = () => {
+      const elapsed = Date.now() - (onlineStartRef.current ?? Date.now());
+      const h = Math.floor(elapsed / 3600000);
+      const m = Math.floor((elapsed % 3600000) / 60000);
+      setOnlineDuration(h > 0 ? `${h}h ${m}m` : `${m}m`);
+    };
+    update();
+    const id = setInterval(update, 60000);
+    return () => clearInterval(id);
+  }, [isOnline]);
+
+  // Keep the screen awake while online, same as the web app's wake lock —
+  // a driver waiting for a job shouldn't have the screen lock mid-shift.
+  useEffect(() => {
+    if (isOnline) {
+      KeepAwake.activateKeepAwakeAsync(ONLINE_KEEP_AWAKE_TAG);
+    } else {
+      KeepAwake.deactivateKeepAwake(ONLINE_KEEP_AWAKE_TAG);
+    }
+    return () => {
+      KeepAwake.deactivateKeepAwake(ONLINE_KEEP_AWAKE_TAG);
+    };
+  }, [isOnline]);
 
   const firstName = driver?.full_name?.split(' ')[0] ?? 'Driver';
   const hour = new Date().getHours();
@@ -403,7 +450,9 @@ export default function DashboardScreen() {
                 }}
               >
                 <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: isOnline ? '#22C55E' : '#9AA5BE' }} />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isOnline ? '#22C55E' : '#9AA5BE' }}>{isOnline ? 'Online' : 'Offline'}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isOnline ? '#22C55E' : '#9AA5BE' }}>
+                  {isOnline ? `Online · ${onlineDuration}` : 'Offline'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -552,6 +601,8 @@ export default function DashboardScreen() {
         otherPartyName={chatTarget?.name}
         onClose={() => { setChatTarget(null); fetchJobUnread(); }}
       />
+
+      <RideRequestModal isOnline={isOnline} />
     </SafeAreaView>
   );
 }

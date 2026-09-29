@@ -47,6 +47,7 @@ export type VistaRide = {
   dropoff_address: string;
   total_ugx: number | null;
   total_usd: number | null;
+  vehicle_type: string | null;
   status: VistaRideStatus;
   created_at: string;
   customer_name?: string | null;
