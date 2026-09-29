@@ -23,6 +23,15 @@ const SERVICE_LABELS: Record<string, string> = {
   vista_ride: 'VISTA Ride',
 };
 
+const SERVICE_COLORS: Record<string, { bg: string; color: string }> = {
+  airport_pickup: { bg: 'rgba(27,46,107,0.08)', color: colors.navy },
+  airport_departure: { bg: 'rgba(27,46,107,0.08)', color: colors.navy },
+  vip: { bg: 'rgba(200,146,42,0.12)', color: colors.gold },
+  group_convoy: { bg: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
+  crusade: { bg: 'rgba(26,107,60,0.08)', color: '#1A6B3C' },
+  conference: { bg: 'rgba(26,107,60,0.08)', color: '#1A6B3C' },
+};
+
 type CompletedJob = {
   id: string;
   booking_ref: string | null;
@@ -143,6 +152,8 @@ export default function EarningsScreen() {
               ))}
             </View>
 
+            <EarningsBarChart jobs={jobs} />
+
             {/* Driver stats card */}
             <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, padding: 16, marginBottom: spacing.md }, shadows.card]}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.navy, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14 }}>Driver Stats</Text>
@@ -187,8 +198,10 @@ export default function EarningsScreen() {
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <Text style={{ fontSize: 11, fontWeight: '600', color: colors.gold }}>{job.booking_ref}</Text>
-                      <View style={{ backgroundColor: 'rgba(27,46,107,0.08)', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.navy }}>{SERVICE_LABELS[job.service_type] ?? job.service_type}</Text>
+                      <View style={{ backgroundColor: (SERVICE_COLORS[job.service_type] ?? { bg: 'rgba(27,46,107,0.08)' }).bg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: (SERVICE_COLORS[job.service_type] ?? { color: colors.navy }).color }}>
+                          {SERVICE_LABELS[job.service_type] ?? job.service_type}
+                        </Text>
                       </View>
                     </View>
                     <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: colors.navy, marginBottom: 4 }}>
@@ -207,5 +220,70 @@ export default function EarningsScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// 7-day earnings bar chart — native View-bar port of the web app's
+// EarningsBarChart (div bars), since no chart library is in the dependency
+// tree yet and this is simple enough not to need one.
+function EarningsBarChart({ jobs }: { jobs: CompletedJob[] }) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const dayJobs = jobs.filter((j) => j.created_at?.startsWith(dateStr));
+    const earnings = dayJobs.reduce((s, j) => s + (j.driver_earnings ?? 0), 0);
+    const isToday = i === 6;
+    const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+    return { earnings, label, isToday, count: dayJobs.length };
+  });
+
+  const maxEarnings = Math.max(...days.map((d) => d.earnings), 1);
+  const totalWeek = days.reduce((s, d) => s + d.earnings, 0);
+  const BAR_AREA = 70;
+
+  return (
+    <View style={[{ backgroundColor: colors.card, borderRadius: radius.card, padding: 16, marginBottom: spacing.md }, shadows.card]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+        <View>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.navy, letterSpacing: 1, textTransform: 'uppercase' }}>Last 7 Days</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: colors.gold, marginTop: 2 }}>USD {totalWeek.toLocaleString()}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ fontWeight: '700', color: colors.navy, fontSize: 14 }}>{days.reduce((s, d) => s + d.count, 0)}</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary }}>trips</Text>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: BAR_AREA + 18, marginBottom: 6 }}>
+        {days.map((day, i) => {
+          const pct = maxEarnings > 0 ? day.earnings / maxEarnings : 0;
+          const barH = Math.max(pct * BAR_AREA, day.earnings > 0 ? 4 : 2);
+          return (
+            <View key={i} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+              {day.earnings > 0 && (
+                <Text style={{ fontSize: 9, fontWeight: '700', color: day.isToday ? colors.gold : colors.navy, marginBottom: 2 }}>${day.earnings}</Text>
+              )}
+              <View
+                style={{
+                  width: '100%',
+                  height: barH,
+                  borderRadius: 4,
+                  backgroundColor: day.isToday ? colors.gold : day.earnings > 0 ? colors.navy : '#E8EDF5',
+                }}
+              />
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 4 }}>
+        {days.map((day, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, fontWeight: day.isToday ? '800' : '600', color: day.isToday ? colors.gold : colors.textSecondary }}>
+            {day.label}
+          </Text>
+        ))}
+      </View>
+    </View>
   );
 }
