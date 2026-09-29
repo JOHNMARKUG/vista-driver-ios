@@ -68,13 +68,6 @@
           "photosPermission": "VISTA Driver needs photo access to upload your profile and verification documents."
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#1B2E6B"
-        }
-      ],
       "expo-font",
       "expo-image",
       "expo-secure-store"
