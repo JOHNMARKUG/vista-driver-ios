@@ -16,7 +16,7 @@
     "ios": {
       "bundleIdentifier": "ug.vista.driver",
       "icon": "./assets/icon-ios.png",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "supportsTablet": false,
       "backgroundColor": "#1B2E6B",
       "infoPlist": {
