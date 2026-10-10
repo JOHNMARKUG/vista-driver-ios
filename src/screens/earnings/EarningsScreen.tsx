@@ -115,7 +115,6 @@ export default function EarningsScreen() {
 
   const fmtUSD = (n: number) => `USD ${Math.round(n).toLocaleString()}`;
   const fmtUGX = (n: number) => `UGX ${Math.round(n * UGX_RATE).toLocaleString()}`;
-  const earningsPerHour = stats.todayTrips > 0 ? (stats.today / 8).toFixed(1) : '—';
 
   const statCards = [
     { label: 'Today', value: fmtUSD(stats.today), sub: `${stats.todayTrips} trip${stats.todayTrips !== 1 ? 's' : ''}` },
@@ -175,7 +174,6 @@ export default function EarningsScreen() {
                   { label: 'Total Trips', value: String(stats.totalTrips) },
                   { label: 'Rating', value: `${driver?.rating ?? 5.0}★` },
                   { label: 'Your Share', value: '90%' },
-                  { label: 'Per Hour', value: `$${earningsPerHour}` },
                 ].map((s, i) => (
                   <View key={i} style={{ flex: 1, backgroundColor: '#F4F6F9', borderRadius: 12, paddingVertical: 10, alignItems: 'center' }}>
                     <Text style={{ fontSize: 15, fontWeight: '900', color: colors.navy }}>{s.value}</Text>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
@@ -19,6 +21,7 @@ function getDriverLevel(trips: number) {
 }
 
 export default function ProfileScreen() {
+  const isScreenFocused = useIsFocused();
   const { driver, signOut, refreshDriver, updatePassword } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -137,6 +140,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['top', 'bottom']}>
+      {isScreenFocused && <StatusBar style="light" />}
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         <View style={{ backgroundColor: colors.navy, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl }}>
           <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: spacing.md }}>Profile</Text>

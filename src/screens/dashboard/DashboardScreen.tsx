@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as KeepAwake from 'expo-keep-awake';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useAuth } from '../../context/AuthContext';
@@ -62,6 +63,7 @@ function openWhatsApp(phone: string | null | undefined, message?: string) {
 }
 
 export default function DashboardScreen() {
+  const isScreenFocused = useIsFocused();
   const { driver, session, refreshDriver } = useAuth();
 
   const [isOnline, setIsOnline] = useState(driver?.is_online ?? false);
@@ -412,6 +414,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F4F6F9' }} edges={['top', 'bottom']}>
+      {isScreenFocused && <StatusBar style="light" />}
       <ScrollView
         contentContainerStyle={{ paddingBottom: spacing.xxl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchJobs(); }} />}
@@ -419,13 +422,13 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={{ backgroundColor: colors.navy, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 8 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFFFFF' }}>{firstName.charAt(0)}</Text>
               </View>
-              <View>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '500' }}>{driver?.group_affiliation ?? 'VISTA'} Driver</Text>
-                <Text style={{ fontSize: 17, fontWeight: '800', color: '#FFFFFF' }}>{greeting}, {firstName}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '800', color: '#FFFFFF' }}>{greeting}, {firstName}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `${level.color}30`, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3, alignSelf: 'flex-start' }}>
                   <Text style={{ fontSize: 10, fontWeight: '700', color: level.color }}>
                     {level.icon} {level.label}{level.nextAt ? ` · ${level.nextAt - totalTrips} to ${level.next}` : ''}
@@ -441,21 +444,24 @@ export default function DashboardScreen() {
               <Pressable onPress={fetchJobs} style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="refresh" size={18} color="#FFFFFF" />
               </Pressable>
-              <Pressable
-                onPress={toggleOnline}
-                style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  backgroundColor: isOnline ? 'rgba(26,107,60,0.25)' : 'rgba(255,255,255,0.1)',
-                  borderRadius: 20, paddingHorizontal: 10, paddingVertical: 8,
-                }}
-              >
-                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: isOnline ? '#22C55E' : '#9AA5BE' }} />
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isOnline ? '#22C55E' : '#9AA5BE' }}>
-                  {isOnline ? `Online · ${onlineDuration}` : 'Offline'}
-                </Text>
-              </Pressable>
             </View>
           </View>
+
+          <Pressable
+            onPress={toggleOnline}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: isOnline }}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+              backgroundColor: isOnline ? 'rgba(26,107,60,0.25)' : 'rgba(255,255,255,0.12)',
+              borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, marginBottom: spacing.md,
+            }}
+          >
+            <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: isOnline ? '#22C55E' : '#9AA5BE' }} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: isOnline ? '#22C55E' : '#E2E8F0' }}>
+              {isOnline ? `You are online · ${onlineDuration}  (tap to go offline)` : 'You are offline  (tap to go online)'}
+            </Text>
+          </Pressable>
 
           {/* Stats strip */}
           <View style={{ flexDirection: 'row', gap: 6 }}>
