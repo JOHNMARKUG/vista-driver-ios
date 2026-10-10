@@ -124,7 +124,7 @@ export default function ProfileScreen() {
 
   const stats = [
     { label: 'Total Trips', value: String(totalTrips) },
-    { label: 'Rating', value: driver?.rating ? `${driver.rating} ★` : '5.0 ★' },
+    { label: 'Rating', value: driver?.rating ? `${driver.rating} ★` : '—' },
     { label: 'Earnings', value: driver?.total_earnings ? `USD ${driver.total_earnings}` : 'USD 0' },
   ];
 
@@ -177,7 +177,7 @@ export default function ProfileScreen() {
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.md }}>
             {stats.map((s, i) => (
               <View key={i} style={[{ flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: 14, alignItems: 'center' }, shadows.card]}>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: colors.gold, marginBottom: 4 }}>{s.value}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 18, fontWeight: '900', color: colors.gold, marginBottom: 4 }}>{s.value}</Text>
                 <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{s.label}</Text>
               </View>
             ))}

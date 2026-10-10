@@ -129,7 +129,7 @@ export default function EarningsScreen() {
         <Text style={{ fontSize: 28, fontWeight: '800', color: colors.navy }}>Earnings</Text>
       </View>
       <ScrollView
-        contentContainerStyle={{ padding: spacing.md, paddingTop: 0, paddingBottom: spacing.xxl }}
+        contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchEarnings(); }} />}
       >
         {loading ? (
@@ -172,7 +172,7 @@ export default function EarningsScreen() {
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {[
                   { label: 'Total Trips', value: String(stats.totalTrips) },
-                  { label: 'Rating', value: `${driver?.rating ?? 5.0}★` },
+                  { label: 'Rating', value: driver?.rating ? `${driver.rating}★` : '—' },
                   { label: 'Your Share', value: '90%' },
                 ].map((s, i) => (
                   <View key={i} style={{ flex: 1, backgroundColor: '#F4F6F9', borderRadius: 12, paddingVertical: 10, alignItems: 'center' }}>

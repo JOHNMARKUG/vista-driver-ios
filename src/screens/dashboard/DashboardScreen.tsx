@@ -466,13 +466,13 @@ export default function DashboardScreen() {
           {/* Stats strip */}
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[
-              { label: 'Today Earned', value: `$${todayEarnings}` },
+              { label: 'Today Earned', value: `USD ${Math.round(todayEarnings).toLocaleString()}` },
               { label: 'Today Trips', value: String(todayJobs.length) },
-              { label: 'Rating', value: `${driver?.rating ?? 5.0}★` } as any,
+              { label: 'Rating', value: driver?.rating ? `${driver.rating}★` : '—' } as any,
               { label: 'Active Jobs', value: String(assignedJobs.length) },
             ].map((s, i) => (
               <View key={i} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 8, alignItems: 'center' }}>
-                <Text style={{ fontSize: 14, fontWeight: '800', color: colors.gold }}>{s.value}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 14, fontWeight: '800', color: colors.gold, paddingHorizontal: 2 }}>{s.value}</Text>
                 <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{s.label}</Text>
               </View>
             ))}
