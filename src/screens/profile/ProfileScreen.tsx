@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import VISTAButton from '../../components/VISTAButton';
 import VISTAInput from '../../components/VISTAInput';
+import LegalLinks from '../../components/LegalLinks';
 import { colors, radius, shadows, spacing } from '../../lib/theme';
 
 function getDriverLevel(trips: number) {
@@ -22,9 +23,10 @@ function getDriverLevel(trips: number) {
 
 export default function ProfileScreen() {
   const isScreenFocused = useIsFocused();
-  const { driver, signOut, refreshDriver, updatePassword } = useAuth();
+  const { driver, signOut, refreshDriver, updatePassword, deleteAccount } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showLevel, setShowLevel] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -93,6 +95,26 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your VISTA Driver profile, personal details and uploaded documents (ID, driving permit, police clearance, photos). Trip and payout records are kept without your personal details for accounting. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            setDeleting(false);
+            if (error) Alert.alert('Could not delete account', error);
+          },
+        },
+      ],
+    );
   };
 
   const handleChangePassword = async () => {
@@ -241,7 +263,20 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 15, fontWeight: '700', color: '#DC2626' }}>{signingOut ? 'Signing out…' : 'Sign Out'}</Text>
           </Pressable>
 
-          <Text style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: colors.textSecondary }}>VISTA Driver — Version 1.0.0</Text>
+          <Pressable
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+            style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 10, opacity: deleting ? 0.6 : 1 }}
+          >
+            <Ionicons name="trash-outline" size={16} color="#DC2626" />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#DC2626' }}>{deleting ? 'Deleting account…' : 'Delete My Account'}</Text>
+          </Pressable>
+
+          <View style={{ marginTop: 14 }}>
+            <LegalLinks />
+          </View>
+
+          <Text style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: colors.textSecondary }}>VISTA Driver — Version 1.0.0</Text>
         </View>
       </ScrollView>
 

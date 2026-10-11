@@ -10,6 +10,7 @@ import type { AuthStackParamList } from '../../navigation/types';
 import { useAuth } from '../../context/AuthContext';
 import VISTAButton from '../../components/VISTAButton';
 import VISTAInput from '../../components/VISTAInput';
+import LegalLinks from '../../components/LegalLinks';
 import { colors, spacing } from '../../lib/theme';
 
 // Existing drivers sign in with an email code or (for the App Review demo
@@ -152,6 +153,9 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 18, paddingBottom: spacing.lg }}>
             New drivers are reviewed and approved by our team before their account is activated.
           </Text>
+          <View style={{ paddingBottom: spacing.lg }}>
+            <LegalLinks prefix="By continuing you agree to our" />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

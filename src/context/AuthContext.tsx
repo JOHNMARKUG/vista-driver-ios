@@ -56,6 +56,7 @@ type AuthContextValue = {
   /** Set or change the signed-in driver's password — see comment at the implementation for why this replaces a reset-email flow. */
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: string | null }>;
   refreshDriver: () => Promise<void>;
 };
 
@@ -181,6 +182,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDriver(undefined);
   }, [driver]);
 
+  // Permanently removes this driver's personal data and uploaded documents
+  // (server-side, via the delete-driver-account function), then signs out.
+  const deleteAccount = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-driver-account');
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await supabase.auth.signOut();
+      setDriver(undefined);
+      return { error: null };
+    } catch (err) {
+      return { error: (err as Error)?.message ?? 'Could not delete your account. Please try again.' };
+    }
+  }, []);
+
   const refreshDriver = useCallback(async () => {
     if (session?.user) await fetchDriver(session.user);
   }, [session, fetchDriver]);
@@ -197,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithPassword,
         updatePassword,
         signOut,
+        deleteAccount,
         refreshDriver,
       }}
     >

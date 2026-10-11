@@ -7,6 +7,7 @@ import { decode } from 'base64-arraybuffer';
 
 import { supabase } from '../../lib/supabase';
 import VISTAButton from '../../components/VISTAButton';
+import LegalLinks from '../../components/LegalLinks';
 import VISTAInput from '../../components/VISTAInput';
 import { colors, radius, spacing } from '../../lib/theme';
 
@@ -47,6 +48,7 @@ type Props = {
 export default function DriverRegisterScreen({ initialEmail, hasSession, onSubmitted, onCancel }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
 
@@ -107,7 +109,7 @@ export default function DriverRegisterScreen({ initialEmail, hasSession, onSubmi
   };
 
   const handleSubmit = async () => {
-    if (!allDocsUploaded) return;
+    if (!allDocsUploaded || !agreed) return;
     setSubmitting(true);
     try {
       const digits = phone.replace(/\D/g, '');
@@ -387,12 +389,27 @@ export default function DriverRegisterScreen({ initialEmail, hasSession, onSubmi
               })}
             </View>
 
+            <Pressable
+              onPress={() => setAgreed((a) => !a)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreed }}
+              style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: agreed ? colors.gold : '#E2E8F0' }}
+            >
+              <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={24} color={agreed ? colors.gold : colors.textSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, lineHeight: 18, color: colors.navy, marginBottom: 6 }}>
+                  I consent to VISTA collecting and storing my photo, driving permit, national ID, police clearance and vehicle photo to verify my identity and approve my application.
+                </Text>
+                <LegalLinks prefix="I agree to the" />
+              </View>
+            </Pressable>
+
             <VISTAButton
-              title={submitting ? (progressLabel ?? 'Submitting…') : allDocsUploaded ? 'Submit Application ✓' : `Complete all ${DOC_CONFIG.length} documents to submit`}
+              title={submitting ? (progressLabel ?? 'Submitting…') : !allDocsUploaded ? `Complete all ${DOC_CONFIG.length} documents to submit` : !agreed ? 'Tick the consent box to submit' : 'Submit Application ✓'}
               variant="accent"
               fullWidth
               loading={submitting}
-              disabled={submitting || !allDocsUploaded}
+              disabled={submitting || !allDocsUploaded || !agreed}
               onPress={handleSubmit}
             />
             <Pressable onPress={() => setStep(1)} style={{ marginTop: 10, alignItems: 'center', paddingVertical: 8 }}>
