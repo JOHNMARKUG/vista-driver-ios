@@ -123,7 +123,7 @@ export default function DriverRegisterScreen({ initialEmail, hasSession, onSubmi
         setProgressLabel(`Uploading ${cfg.label.replace(/ — REQUIRED$/, '')}… (${i + 1}/${DOC_CONFIG.length})`);
         const contentType = doc.ext === 'png' ? 'image/png' : 'image/jpeg';
         const path = `drivers/${basePath}/${cfg.key}.${doc.ext}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, decode(doc.base64), { upsert: true, contentType });
+        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, decode(doc.base64), { upsert: false, contentType });
         if (upErr) throw new Error(`${cfg.label} upload failed: ${upErr.message}`);
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         urls[cfg.dbCol] = data.publicUrl;
