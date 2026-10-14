@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import VISTAButton from '../../components/VISTAButton';
 import VISTAInput from '../../components/VISTAInput';
 import LegalLinks from '../../components/LegalLinks';
+import { useSignedUrl } from '../../lib/driverDocs';
 import { colors, radius, shadows, spacing } from '../../lib/theme';
 
 function getDriverLevel(trips: number) {
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const photoUrl = useSignedUrl(driver?.profile_photo_url);
   const [showLevel, setShowLevel] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -168,8 +170,8 @@ export default function ProfileScreen() {
           <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: spacing.md }}>Profile</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 16 }}>
             <Pressable onPress={handlePickPhoto} disabled={uploading} style={{ position: 'relative' }}>
-              {driver?.profile_photo_url ? (
-                <Image source={{ uri: driver.profile_photo_url }} style={{ width: 60, height: 60, borderRadius: 30 }} />
+              {driver?.profile_photo_url && photoUrl ? (
+                <Image source={{ uri: photoUrl }} style={{ width: 60, height: 60, borderRadius: 30 }} />
               ) : (
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 24, fontWeight: '800', color: '#FFFFFF' }}>{initial}</Text>
