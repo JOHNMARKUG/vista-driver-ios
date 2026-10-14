@@ -10,7 +10,16 @@
 //   1. uploaded documents in the driver-documents bucket
 //   2. personal fields on the drivers row (kept as an anonymous shell because
 //      bookings/rides reference drivers.id for payout accounting)
-//   3. the shared auth user, ONLY if the person has no customer profile
+//   3. the driver's notifications and chat-sender link
+//   4. the shared auth user, ONLY if the person has no customer profile. If
+//      other tables still reference the login (foreign keys) it is anonymised
+//      and disabled instead, so the person can no longer sign in or be identified.
+//
+// Live-schema facts this relies on (verified 2026-10-15):
+//   drivers.user_id -> auth.users is ON DELETE CASCADE, so user_id is set to
+//   null BEFORE the login is touched, otherwise the drivers row would be deleted.
+//   drivers.full_name and drivers.phone are NOT NULL (placeholders are used).
+//   ride_messages.sender_id -> auth.users is NO ACTION (blocks user deletion).
 //
 // The caller is identified solely from their own access token, never from a
 // client-supplied id, so one user cannot delete another's data.
@@ -28,6 +37,10 @@ const DOC_COLUMNS = [
   'national_id_back_url',
   'police_clearance_url',
   'vehicle_photo_url',
+  'national_id_url',
+  'license_url',
+  'passport_url',
+  'interpol_clearance_url',
 ] as const;
 
 const json = (body: unknown, status = 200) =>
@@ -80,48 +93,39 @@ Deno.serve(async (req) => {
         if (rmErr) throw rmErr;
       }
 
-      // 2. Scrub the drivers row into an anonymous shell.
+      // 2. Scrub the drivers row into an anonymous shell (user_id first, see header).
       const nullDocs = Object.fromEntries(DOC_COLUMNS.map((c) => [c, null]));
-      const fullScrub = {
-        ...nullDocs,
-        user_id: null,
-        full_name: 'Deleted Driver',
-        phone: null,
-        email: null,
-        plate_number: null,
-        vehicle_make: null,
-        vehicle_model: null,
-        vehicle_year: null,
-        vehicle_color: null,
-        fcm_token: null,
-        current_latitude: null,
-        current_longitude: null,
-        is_online: false,
-        status: 'suspended',
-      };
-      let { error: scrubErr } = await admin.from('drivers').update(fullScrub).eq('id', driver.id);
-
-      if (scrubErr) {
-        // Some personal columns may be NOT NULL; retry with inert placeholders.
-        const placeholderScrub = {
+      const { error: scrubErr } = await admin
+        .from('drivers')
+        .update({
           ...nullDocs,
           user_id: null,
           full_name: 'Deleted Driver',
           phone: '',
-          email: `deleted-${driver.id}@deleted.invalid`,
-          plate_number: '',
+          email: null,
+          plate_number: null,
+          vehicle_make: null,
+          vehicle_model: null,
+          vehicle_year: null,
+          vehicle_color: null,
+          is_female: null,
+          admin_notes: null,
+          rejection_reason: null,
           fcm_token: null,
           current_latitude: null,
           current_longitude: null,
           is_online: false,
           status: 'suspended',
-        };
-        ({ error: scrubErr } = await admin.from('drivers').update(placeholderScrub).eq('id', driver.id));
-      }
+        })
+        .eq('id', driver.id);
       if (scrubErr) throw scrubErr;
     }
 
-    // 3. Delete the shared login only if this person is not also a customer.
+    // 3. Best-effort cleanup of other personal links to this login.
+    await admin.from('notifications').delete().eq('user_id', userId);
+    await admin.from('ride_messages').update({ sender_id: null }).eq('sender_id', userId);
+
+    // 4. Shared login: keep it if the person is also a customer.
     const { data: customerProfile, error: profileErr } = await admin
       .from('profiles')
       .select('id')
@@ -132,8 +136,18 @@ Deno.serve(async (req) => {
     let authDeleted = false;
     if (!customerProfile) {
       const { error: delErr } = await admin.auth.admin.deleteUser(userId);
-      if (delErr) throw delErr;
-      authDeleted = true;
+      if (delErr) {
+        // Still referenced somewhere: anonymise and disable the login instead.
+        const { error: anonErr } = await admin.auth.admin.updateUserById(userId, {
+          email: `deleted-${userId}@deleted.invalid`,
+          phone: '',
+          user_metadata: {},
+          ban_duration: '876000h',
+        });
+        if (anonErr) throw anonErr;
+      } else {
+        authDeleted = true;
+      }
     }
 
     return json({ success: true, authDeleted });
