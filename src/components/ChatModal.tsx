@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -9,6 +9,10 @@ import { colors, spacing } from '../lib/theme';
 // Native port of the web driver app's RideChat.jsx — same ride_messages
 // schema (booking_id, booking_type, sender_id, sender_type, message,
 // read_at), same quick-reply set, same realtime subscribe-on-open pattern.
+const SUPPORT_WHATSAPP = '256785585703';
+const SUPPORT_DISPLAY = '+256 785 585703';
+const MAX_MESSAGE_LENGTH = 500;
+
 const QUICK_REPLIES = [
   'I am on my way 🚗',
   'I have arrived 📍',
@@ -89,6 +93,32 @@ export default function ChatModal({ visible, bookingId, bookingType, otherPartyN
     setSending(false);
   };
 
+  // Guideline 1.2: a way to report abusive messages. Opens a pre-filled message
+  // to VISTA support (the same channel as the SOS button) with the trip and the
+  // passenger's latest messages, so dispatch can review and act on the account.
+  const reportConversation = () => {
+    Alert.alert(
+      'Report this conversation?',
+      'Use this for abusive, threatening or unsafe messages. VISTA support will review the conversation and can suspend the passenger from the service.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report to VISTA support',
+          style: 'destructive',
+          onPress: () => {
+            const recent = messages
+              .filter((m) => m.sender_type !== 'driver')
+              .slice(-5)
+              .map((m) => `- "${m.message}"`)
+              .join('\n');
+            const msg = `REPORT: abusive or unsafe chat message\nDriver: ${driver?.full_name ?? 'N/A'}\nTrip: ${bookingType} ${bookingId}\nRecent passenger messages:\n${recent || '(none)'}`;
+            Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(msg)}`);
+          },
+        },
+      ],
+    );
+  };
+
   const fmt = (ts: string) => new Date(ts).toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   return (
@@ -104,6 +134,15 @@ export default function ChatModal({ visible, bookingId, bookingType, otherPartyN
               <Text style={{ fontSize: 16, fontWeight: '800', color: '#FFFFFF' }}>{otherPartyName ?? 'Passenger'}</Text>
               <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>🔒 Passenger number stays private</Text>
             </View>
+            <Pressable
+              onPress={reportConversation}
+              accessibilityRole="button"
+              accessibilityLabel="Report this conversation"
+              style={{ backgroundColor: 'rgba(220,38,38,0.2)', borderRadius: 10, height: 40, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Ionicons name="flag" size={15} color="#FCA5A5" />
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#FCA5A5' }}>Report</Text>
+            </Pressable>
           </View>
 
           {/* Quick replies */}
@@ -122,6 +161,9 @@ export default function ChatModal({ visible, bookingId, bookingType, otherPartyN
                 <Text style={{ fontSize: 32, marginBottom: 12 }}>💬</Text>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.navy, marginBottom: 6 }}>Chat with your passenger</Text>
                 <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18 }}>Use quick replies or type a message — their number stays private</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 17, marginTop: 14 }}>
+                  Abusive or unsafe message? Tap Report, or contact VISTA support on {SUPPORT_DISPLAY}.
+                </Text>
               </View>
             )}
             {messages.map((msg) => {
@@ -157,6 +199,7 @@ export default function ChatModal({ visible, bookingId, bookingType, otherPartyN
               onChangeText={setText}
               placeholder="Message your passenger..."
               multiline
+              maxLength={MAX_MESSAGE_LENGTH}
               style={{ flex: 1, backgroundColor: '#F4F6F9', borderWidth: 1.5, borderColor: '#E8EDF5', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 11, fontSize: 14, color: colors.navy, maxHeight: 100 }}
             />
             <Pressable
